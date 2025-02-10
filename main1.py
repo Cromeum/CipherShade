@@ -134,7 +134,7 @@ st.markdown('<div class="animated-title">🔒 CipherShade</div>', unsafe_allow_h
 
 # Description
 st.write("""
-Welcome to the Steganography App! Hide text in text, hide text in images, or even hide images in images.
+Welcome to the CipherShade a Steganography App! Hide text in text, hide text in images, or even hide images in images.
 This app also includes decoding functionality to extract hidden messages.
 """)
 

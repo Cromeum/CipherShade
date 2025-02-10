@@ -6,17 +6,49 @@ import io
 # Page Configuration
 st.set_page_config(page_title="CipherShade", page_icon="🔒", layout="wide")
 
-# Custom CSS for Navigation and Page Styling
+# Custom CSS for Enhanced UI
 st.markdown("""
 <style>
 /* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Roboto+Mono:wght@400;600&display=swap');
 
 /* Default Light Mode */
 body {
     font-family: 'Poppins', sans-serif;
-    background-color: #ffffff;
-    color: #000000;
+    background-color: #f5f5f5;
+    color: #333333;
+}
+
+/* Title Typing Animation */
+@keyframes typing {
+    from { width: 0; }
+    to { width: 100%; }
+}
+
+@keyframes blink-caret {
+    from, to { border-color: transparent; }
+    50% { border-color: #ff7e5f; }
+}
+
+.animated-title {
+    font-size: 48px;
+    font-weight: bold;
+    text-align: center;
+    font-family: 'Roboto Mono', monospace;
+    overflow: hidden; /* Ensures the text is hidden until typed */
+    white-space: nowrap; /* Keeps the text on a single line */
+    margin: 0 auto; /* Centers the title */
+    letter-spacing: 0.15em; /* Adjust spacing for typing effect */
+    animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+    border-right: 0.15em solid #ff7e5f; /* Cursor effect */
+}
+
+/* Description Styling */
+.description {
+    font-size: 18px;
+    text-align: center;
+    color: #555555;
+    margin-bottom: 40px;
 }
 
 /* Sidebar Styling */
@@ -82,61 +114,74 @@ body {
     color: rgba(255, 255, 255, 0.7);
 }
 
-/* Title Animation */
-@keyframes colorChange {
-    0% { color: #ff7e5f; }
-    25% { color: #feb47b; }
-    50% { color: #ff6f61; }
-    75% { color: #ffcccb; }
-    100% { color: #ff7e5f; }
-}
-
-.animated-title {
-    font-size: 48px;
-    font-weight: bold;
-    text-align: center;
-    animation: colorChange 5s infinite;
+/* Button Styling */
+.stButton button {
+    background: linear-gradient(145deg, #1e3c72, #2a5298);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
     font-family: 'Poppins', sans-serif;
+    font-size: 16px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Tooltip Styling */
-.tooltip {
-    position: relative;
-    display: inline-block;
+.stButton button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
 }
 
-.tooltip .tooltiptext {
-    visibility: hidden;
-    width: 120px;
-    background-color: #555;
-    color: #fff;
-    text-align: center;
-    border-radius: 6px;
-    padding: 5px;
-    position: absolute;
-    z-index: 1;
-    bottom: 125%;
-    left: 50%;
-    margin-left: -60px;
-    opacity: 0;
-    transition: opacity 0.3s;
+/* Input Field Styling */
+.stTextArea textarea, .stTextInput input {
+    border: 1px solid #cccccc;
+    border-radius: 5px;
+    padding: 10px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 16px;
 }
 
-.tooltip:hover .tooltiptext {
-    visibility: visible;
-    opacity: 1;
+/* File Uploader Styling */
+.stFileUploader label {
+    font-family: 'Poppins', sans-serif;
+    font-size: 16px;
+}
+
+/* Success and Error Messages */
+.stSuccess {
+    font-family: 'Poppins', sans-serif;
+    font-size: 16px;
+    color: #28a745;
+}
+
+.stError {
+    font-family: 'Poppins', sans-serif;
+    font-size: 16px;
+    color: #dc3545;
+}
+
+/* Image Styling */
+.stImage img {
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.stImage img:hover {
+    transform: scale(1.02);
 }
 </style>
 """, unsafe_allow_html=True)
 
-# Animated Title
+# Animated Title with Typing Effect
 st.markdown('<div class="animated-title">🔒 CipherShade</div>', unsafe_allow_html=True)
 
 # Description
-st.write("""
-Welcome to the CipherShade a Steganography App! Hide text in text, hide text in images, or even hide images in images.
-This app also includes decoding functionality to extract hidden messages.
-""")
+st.markdown("""
+<div class="description">
+    Welcome to <strong>CipherShade</strong>! Hide text in text, hide text in images, or even hide images in images.
+    This app also includes decoding functionality to extract hidden messages.
+</div>
+""", unsafe_allow_html=True)
 
 # Sidebar for Navigation
 st.sidebar.markdown("""

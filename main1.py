@@ -11,7 +11,29 @@ st.set_page_config(page_title="CipherShade", page_icon="🔒", layout="wide")
 # Custom CSS for Responsive Design
 st.markdown("""
 <style>
-/* [Keep all previous CSS styles here] */
+/* Responsive Design */
+@media (max-width: 768px) {
+    .stTextArea textarea, .stTextInput input {
+        font-size: 16px !important;
+    }
+    .stButton button {
+        width: 100% !important;
+        font-size: 16px !important;
+    }
+    .stSelectbox select {
+        font-size: 16px !important;
+    }
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+        font-size: 24px !important;
+    }
+    .stMarkdown p, .stMarkdown div {
+        font-size: 16px !important;
+    }
+    .stImage img {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -45,7 +67,6 @@ option = st.sidebar.selectbox(
     f"🎨🔍 {x}"
 )
 
-
 # Functions
 def encode_message(cover_text, secret_message):
     zero_width_space = "\u200B"
@@ -56,14 +77,12 @@ def encode_message(cover_text, secret_message):
         encoded_message += zero_width_space if bit == '0' else zero_width_joiner
     return cover_text + encoded_message
 
-
 def decode_message(stego_text):
     zero_width_space = "\u200B"
     zero_width_joiner = "\u200D"
     encoded_message = "".join([c for c in stego_text if c in (zero_width_space, zero_width_joiner)])
     binary_message = "".join(['0' if c == zero_width_space else '1' for c in encoded_message])
     return "".join([chr(int(binary_message[i:i + 8], 2)) for i in range(0, len(binary_message), 8)])
-
 
 def extract_message_from_image(stego_image):
     img_array = np.array(stego_image)
@@ -82,11 +101,10 @@ def extract_message_from_image(stego_image):
                 pass
     return secret_message
 
-
 # Text in Text Section
 if option == "Text in Text":
     st.header("📝 Text in Text Steganography")
-    cover_text = st.text_area("Cover Text:", help="Enter the text that will hide your secret message")
+    cover_text = st.text_area("Cover Text:", help="Enter the text that will hide your secret message", height=150)
     secret_message = st.text_input("Secret Message:", help="Message you want to hide")
 
     if st.button("🕶️ Hide Message"):
@@ -256,6 +274,6 @@ elif option == "Decode Image":
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: #666; font-size: 0.9rem;">
-    Created with ❤️ by NEEL | Powered by Streamlit
+    Created with ❤️ by NEEL
 </div>
 """, unsafe_allow_html=True)

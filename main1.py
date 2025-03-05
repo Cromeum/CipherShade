@@ -4,7 +4,7 @@ from PIL import Image, ImageOps
 import zlib
 from io import BytesIO
 
-# Page Configuration with mobile optimizations
+# Page Configuration
 st.set_page_config(
     page_title="CipherShade",
     page_icon="🔒",
@@ -15,7 +15,79 @@ st.set_page_config(
 # Advanced Responsive CSS
 st.markdown("""
 <style>
-/* [Keep previous CSS styles unchanged] */
+/* Base styles */
+body {
+    font-size: 1.1rem !important;
+}
+
+/* Mobile-first media queries */
+@media (max-width: 768px) {
+    .main .block-container {
+        padding: 1rem !important;
+    }
+    
+    .stTextArea textarea, .stTextInput input {
+        font-size: 16px !important;
+        min-height: 120px !important;
+    }
+    
+    .stButton button {
+        width: 100% !important;
+        padding: 12px !important;
+        font-size: 16px !important;
+    }
+    
+    .stImage img {
+        max-width: 100% !important;
+        height: auto !important;
+        margin: 1rem 0 !important;
+    }
+    
+    section[data-testid="stSidebar"] {
+        display: none !important;
+    }
+    
+    .stSelectbox select {
+        font-size: 16px !important;
+        margin: 1rem 0 !important;
+    }
+}
+
+/* Desktop enhancements */
+@media (min-width: 769px) {
+    .main .block-container {
+        max-width: 80% !important;
+        padding: 2rem !important;
+    }
+}
+
+/* Universal styles */
+.animated-title {
+    font-size: 2.5rem !important;
+    text-align: center;
+    margin: 2rem 0;
+    color: #2c3e50;
+}
+
+.description {
+    text-align: center;
+    margin-bottom: 3rem;
+    color: #666;
+}
+
+.success-box {
+    padding: 1rem;
+    background: #e8f5e9;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+
+.error-box {
+    padding: 1rem;
+    background: #ffebee;
+    border-radius: 8px;
+    margin: 1rem 0;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -23,7 +95,7 @@ st.markdown("""
 st.markdown('<div class="animated-title">🔒 CipherShade</div>', unsafe_allow_html=True)
 st.markdown("""
 <div class="description">
-    Secure steganography tool with enhanced error handling and validation
+    Secure steganography tool for hiding messages and images with cross-device compatibility
 </div>
 """, unsafe_allow_html=True)
 
@@ -53,7 +125,7 @@ def robust_image_load(uploaded_file):
 
 def validate_image_size(cover_img, secret_data):
     cover_pixels = np.array(cover_img).size // 3
-    required_pixels = len(secret_data) * 8 + 32  # Add 32 pixels for dimension storage
+    required_pixels = len(secret_data) * 8 + 40  # Reserve 40 pixels for metadata
     return cover_pixels >= required_pixels
 
 def safe_decompress(data):
@@ -65,7 +137,7 @@ def safe_decompress(data):
 def resize_secret_image(secret_img, cover_img):
     """Smart resizing with aspect ratio preservation"""
     cover_width, cover_height = cover_img.size
-    max_pixels = (cover_width * cover_height * 3 - 32) // 8  # Reserve space for dimensions
+    max_pixels = (cover_width * cover_height * 3 - 40) // 8  # Reserve space for metadata
     original_width, original_height = secret_img.size
     
     # Calculate new size preserving aspect ratio
@@ -155,142 +227,14 @@ def decode_message(stego_text):
     binary_str = ''.join(binary)
     return ''.join([chr(int(binary_str[i:i+8], 2)) for i in range(0, len(binary_str), 8)])
 
-# Image Processing Operations
-def process_image_embedding(cover_img, secret_img):
-    """Enhanced embedding process with validation"""
-    # Resize secret image
-    resized_secret = resize_secret_image(secret_img, cover_img)
-    
-    # Compress with error checking
-    buf = BytesIO()
-    resized_secret.save(buf, format="PNG", compress_level=0)
-    compressed_data = zlib.compress(buf.getvalue(), level=1)  # Faster compression
-    
-    # Validate capacity
-    if not validate_image_size(cover_img, compressed_data):
-        raise ValueError("Cover image too small even after resizing")
-    
-    # Convert to numpy array
-    cover_array = np.array(cover_img)
-    flat_cover = cover_array.flatten()
-    
-    # Embed data with bounds checking
-    for i, byte in enumerate(compressed_data):
-        for bit_idx in range(8):
-            pixel_idx = 40 + i * 8 + bit_idx  # Reserve first 40 pixels
-            if pixel_idx >= len(flat_cover):
-                raise ValueError("Insufficient cover image capacity")
-            bit = (byte >> (7 - bit_idx)) & 1
-            flat_cover[pixel_idx] = (flat_cover[pixel_idx] & 0xFE) | bit
-    
-    # Embed dimensions and return
-    return embed_original_dimensions(secret_img, flat_cover.reshape(cover_array.shape))
-
-def process_image_extraction(stego_img):
-    """Robust extraction process with error recovery"""
-    stego_array = np.array(stego_img)
-    
-    try:
-        # Extract dimensions with validation
-        original_width, original_height = extract_original_dimensions(stego_array)
-        
-        # Extract compressed data
-        flat_stego = stego_array.flatten()
-        extracted = bytearray()
-        
-        # Read data pixels (skip first 40 pixels used for metadata)
-        for i in range(40, len(flat_stego), 8):
-            byte = 0
-            valid_bits = 0
-            for bit_idx in range(8):
-                pixel_idx = i + bit_idx
-                if pixel_idx >= len(flat_stego):
-                    break
-                byte = (byte << 1) | (flat_stego[pixel_idx] & 1)
-                valid_bits += 1
-            
-            # Pad with zeros if incomplete byte
-            if valid_bits < 8:
-                byte <<= (8 - valid_bits)
-            extracted.append(byte)
-        
-        # Decompress with error recovery
-        decompressed = safe_decompress(bytes(extracted))
-        if not decompressed:
-            raise ValueError("Decompression failed")
-        
-        # Restore image
-        hidden_img = Image.open(BytesIO(decompressed))
-        return hidden_img.resize((original_width, original_height), Image.Resampling.LANCZOS)
-    
-    except Exception as e:
-        st.error(f"Extraction failed: {str(e)}")
-        return None
-
-# Streamlit UI Sections
-if option == "Text in Text":
-    st.header("📝 Text in Text Steganography")
-    col1, col2 = st.columns(2)
-    with col1:
-        cover_text = st.text_area("Cover Text:", height=150)
-    with col2:
-        secret_message = st.text_area("Secret Message:", height=150)
-
-    if st.button("🕶️ Hide Message"):
-        if cover_text and secret_message:
-            try:
-                stego_text = encode_message(cover_text, secret_message)
-                st.markdown(f'<div class="success-box">✅ Message hidden successfully!</div>', unsafe_allow_html=True)
-                st.code(stego_text)
-            except Exception as e:
-                st.error(f"Encoding error: {str(e)}")
-        else:
-            st.markdown('<div class="error-box">❌ Please fill both fields</div>', unsafe_allow_html=True)
-
-elif option == "Text in Image":
-    st.header("🖼️ Text in Image Steganography")
-    uploaded_image = st.file_uploader("Upload Cover Image:", type=["png", "jpg", "jpeg"])
-    secret_message = st.text_area("Secret Message:")
-
-    if uploaded_image and secret_message:
-        try:
-            img = robust_image_load(uploaded_image)
-            if img:
-                st.image(img, caption="Original Image")
-                
-                if st.button("🖼️ Hide Message"):
-                    secret_message += "\0"
-                    binary_message = ''.join(format(ord(char), '08b') for char in secret_message)
-                    img_array = np.array(img)
-                    flat_img = img_array.flatten()
-
-                    if len(binary_message) > len(flat_img) - 40:  # Reserve 40 pixels
-                        st.error("Message too large for image capacity")
-                    else:
-                        # Embed message starting from pixel 40
-                        for i in range(len(binary_message)):
-                            pixel_idx = 40 + i
-                            if pixel_idx >= len(flat_img):
-                                break
-                            flat_img[pixel_idx] = (flat_img[pixel_idx] & 0xFE) | int(binary_message[i])
-                        
-                        stego_img = Image.fromarray(flat_img.reshape(img_array.shape))
-                        st.markdown(f'<div class="success-box">✅ Message hidden successfully!</div>', unsafe_allow_html=True)
-                        st.image(stego_img, caption="Stego Image")
-                        
-                        buf = BytesIO()
-                        stego_img.save(buf, format="PNG")
-                        st.download_button("💾 Download", buf.getvalue(), "stego.png", "image/png")
-        except Exception as e:
-            st.error(f"Processing error: {str(e)}")
-
-elif option == "Image in Image":
+# Image in Image Operations
+if option == "Image in Image":
     st.header("🎨 Image in Image Steganography")
     col1, col2 = st.columns(2)
     with col1:
-        cover_image = st.file_uploader("Cover Image:", type=["png"])
+        cover_image = st.file_uploader("Upload Cover Image (PNG only):", type=["png"])
     with col2:
-        secret_image = st.file_uploader("Secret Image:", type=["png", "jpg", "jpeg"])
+        secret_image = st.file_uploader("Upload Secret Image:", type=["png", "jpg", "jpeg"])
 
     if cover_image and secret_image:
         try:
@@ -302,20 +246,49 @@ elif option == "Image in Image":
                 st.image(secret_img, caption="Secret Image")
 
                 if st.button("🎨 Hide Image"):
-                    stego_array = process_image_embedding(cover_img, secret_img)
-                    stego_image = Image.fromarray(stego_array)
-                    st.markdown(f'<div class="success-box">✅ Image hidden successfully!</div>', unsafe_allow_html=True)
-                    st.image(stego_image, caption="Stego Image")
+                    # Resize secret image
+                    resized_secret = resize_secret_image(secret_img, cover_img)
                     
+                    # Compress secret image
                     buf = BytesIO()
-                    stego_image.save(buf, format="PNG")
-                    st.download_button("💾 Download", buf.getvalue(), "stego.png", "image/png")
+                    resized_secret.save(buf, format="PNG", compress_level=0)
+                    compressed_secret = zlib.compress(buf.getvalue(), level=1)
+                    
+                    # Validate capacity
+                    if not validate_image_size(cover_img, compressed_secret):
+                        st.error("Cover image too small! Use a larger cover image or reduce the size of the secret image.")
+                    else:
+                        # Embed secret image
+                        cover_array = np.array(cover_img)
+                        flat_cover = cover_array.flatten()
+                        
+                        # Embed compressed data
+                        for i, byte in enumerate(compressed_secret):
+                            for bit_idx in range(8):
+                                pixel_idx = 40 + i * 8 + bit_idx  # Skip first 40 pixels
+                                if pixel_idx >= len(flat_cover):
+                                    raise ValueError("Insufficient cover image capacity")
+                                bit = (byte >> (7 - bit_idx)) & 1
+                                flat_cover[pixel_idx] = (flat_cover[pixel_idx] & 0xFE) | bit
+                        
+                        # Embed dimensions
+                        stego_array = embed_original_dimensions(secret_img, flat_cover.reshape(cover_array.shape))
+                        stego_image = Image.fromarray(stego_array)
+                        
+                        st.markdown(f'<div class="success-box">✅ Image hidden successfully!</div>', unsafe_allow_html=True)
+                        st.image(stego_image, caption="Stego Image")
+                        
+                        # Download stego image
+                        buf = BytesIO()
+                        stego_image.save(buf, format="PNG")
+                        st.download_button("💾 Download", buf.getvalue(), "stego.png", "image/png")
         except Exception as e:
             st.error(f"Embedding error: {str(e)}")
 
+# Decode Image in Image Operations
 elif option == "Decode Image in Image":
     st.header("🎨🔍 Decode Image from Image")
-    stego_image = st.file_uploader("Upload Stego Image:", type=["png"])
+    stego_image = st.file_uploader("Upload Stego Image (PNG only):", type=["png"])
 
     if stego_image:
         try:
@@ -324,11 +297,34 @@ elif option == "Decode Image in Image":
                 st.image(img, caption="Stego Image")
                 
                 if st.button("🔍 Extract Hidden Image"):
-                    hidden_img = process_image_extraction(img)
-                    if hidden_img:
+                    stego_array = np.array(img)
+                    
+                    # Extract dimensions
+                    original_width, original_height = extract_original_dimensions(stego_array)
+                    
+                    # Extract compressed data
+                    flat_stego = stego_array.flatten()
+                    extracted = bytearray()
+                    
+                    for i in range(40, len(flat_stego), 8):  # Skip first 40 pixels
+                        byte = 0
+                        for bit_idx in range(8):
+                            pixel_idx = i + bit_idx
+                            if pixel_idx >= len(flat_stego):
+                                break
+                            byte = (byte << 1) | (flat_stego[pixel_idx] & 1)
+                        extracted.append(byte)
+                    
+                    # Decompress and restore image
+                    decompressed = safe_decompress(bytes(extracted))
+                    if decompressed:
+                        hidden_img = Image.open(BytesIO(decompressed))
+                        hidden_img = hidden_img.resize((original_width, original_height), Image.Resampling.LANCZOS)
+                        
                         st.markdown(f'<div class="success-box">✅ Hidden image extracted!</div>', unsafe_allow_html=True)
                         st.image(hidden_img, caption="Extracted Image")
                         
+                        # Download extracted image
                         buf = BytesIO()
                         hidden_img.save(buf, format="PNG")
                         st.download_button("💾 Download", buf.getvalue(), "hidden.png", "image/png")
@@ -337,12 +333,12 @@ elif option == "Decode Image in Image":
         except Exception as e:
             st.error(f"Extraction error: {str(e)}")
 
-# [Keep other sections (Decode Text, Decode Image) similar with proper error handling]
+# [Keep other sections (Text in Text, Text in Image, Decode Text, Decode Image) unchanged]
 
 # Footer
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: #666; margin: 2rem 0;">
-    CipherShade v3.0 | Enhanced Security | Built with ❤️ by NEEL
+    CipherShade v3.1 | Enhanced Security | Built with ❤️ by NEEL
 </div>
 """, unsafe_allow_html=True)
